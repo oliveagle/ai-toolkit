@@ -10,6 +10,8 @@ os.environ["MIOPEN_DISABLE_ROCBLAS"] = "1"
 os.environ["HIP_LAUNCH_BLOCKING"] = "1"
 os.environ["HSA_ENABLE_SDMA"] = "0"
 
+os.environ["DISABLE_TORCHAO_QUANTIZATION"] = "1"
+
 import sys
 from typing import Union, OrderedDict
 from dotenv import load_dotenv
