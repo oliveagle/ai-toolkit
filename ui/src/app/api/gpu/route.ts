@@ -142,12 +142,14 @@ async function getGpuStats(isWindows: boolean) {
   return gpus;
 }
 
-// amdParseFloat and amdParseInt avoid errors when amd-smi entries
-// contain the string "N/A".
 function amdParseFloat(value) {
     try {
-        const ret = parseFloat(value);
-        return ret;
+        if (value === "N/A" || value === undefined || value === null) {
+            return 0.0;
+        }
+        const parsedValue = typeof value === 'object' && 'value' in value ? value.value : value;
+        const ret = parseFloat(parsedValue);
+        return isNaN(ret) ? 0.0 : ret;
     } catch(error) {
         return 0.0;
     }
@@ -155,8 +157,12 @@ function amdParseFloat(value) {
 
 function amdParseInt(value) {
     try {
-        const ret = parseInt(value);
-        return ret;
+        if (value === "N/A" || value === undefined || value === null) {
+            return 0;
+        }
+        const parsedValue = typeof value === 'object' && 'value' in value ? value.value : value;
+        const ret = parseInt(parsedValue);
+        return isNaN(ret) ? 0 : ret;
     } catch(error) {
         return 0;
     }
@@ -184,35 +190,55 @@ async function getAMDGpuStats(isWindows: boolean) {
   var gpus = sdata["gpu_data"].map(d => {
     const i = amdParseInt(d["gpu"]);
     const gpu_data = mdata["gpu_data"][i];
-    const mem_total = amdParseFloat(gpu_data["mem_usage"]["total_vram"]["value"]);
-    const mem_used =  amdParseFloat(gpu_data["mem_usage"]["used_vram"]["value"]);
-    const mem_free =  amdParseFloat(gpu_data["mem_usage"]["free_visible_vram"]["value"]);
-    const mem_utilization = ((1.0 - (mem_total - mem_free)) / mem_total) * 100;
+
+    const temperatureData = gpu_data["temperature"]?.["hotspot"];
+    const temperature = amdParseInt(temperatureData);
+
+    const usageData = gpu_data["usage"];
+    const gpu_util = amdParseInt(usageData?.["gfx_activity"] ?? 0);
+
+    const mem_usage = gpu_data["mem_usage"] || {};
+    const mem_total = amdParseFloat(mem_usage["total_vram"]);
+    const mem_used = amdParseFloat(mem_usage["used_vram"]);
+    const mem_free = amdParseFloat(mem_usage["free_visible_vram"]);
+    const mem_utilization = mem_total > 0 ? ((mem_used / mem_total) * 100) : 0;
+
+    const powerData = gpu_data["power"] || {};
+    const power_draw = amdParseFloat(powerData["socket_power"]);
+    const limitData = d["limit"] || {};
+    const power_limit = amdParseFloat(limitData["max_power"]);
+
+    const clockData = gpu_data["clock"] || {};
+    const gfx_clock = amdParseInt(clockData["gfx_0"]?.["clk"]);
+    const mem_clock = amdParseInt(clockData["mem_0"]?.["clk"]);
+
+    const fanData = gpu_data["fan"] || {};
+    const fan_speed = amdParseFloat(fanData["usage"]);
 
     return {
       index: i,
       name: d["asic"]["market_name"],
       driverVersion: d["driver"]["version"],
-      temperature: amdParseInt(gpu_data["temperature"]["hotspot"]["value"]),
+      temperature: temperature,
       utilization: {
-        gpu: amdParseInt(gpu_data["usage"]["gfx_activity"]["value"]),
+        gpu: gpu_util,
         memory: mem_utilization,
       },
       memory: {
         total: mem_total,
-        used:  mem_used,
-        free:  mem_free,
+        used: mem_used,
+        free: mem_free,
       },
       power: {
-        draw: amdParseFloat(gpu_data["power"]["socket_power"]["value"]),
-        limit: amdParseFloat(d["limit"]["max_power"]["value"]),
+        draw: power_draw,
+        limit: power_limit,
       },
       clocks: {
-        graphics: amdParseInt(gpu_data["clock"]["gfx_0"]["clk"]["value"]),
-        memory: amdParseInt(gpu_data["clock"]["mem_0"]["clk"]["value"]),
+        graphics: gfx_clock,
+        memory: mem_clock,
       },
       fan: {
-        speed: amdParseFloat(gpu_data["fan"]["usage"]["value"]),
+        speed: fan_speed,
       }
     };
   });
