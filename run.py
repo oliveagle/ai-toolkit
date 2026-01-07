@@ -4,6 +4,11 @@ os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"
 
 os.environ["MIOPEN_DISABLE_CONV"] = "1"
 os.environ["MIOPEN_DISABLE_IMPLICIT_GEMM"] = "1"
+os.environ["MIOPEN_DISABLE_CONV_FWD"] = "1"
+os.environ["MIOPEN_DISABLE_BMM"] = "1"
+os.environ["MIOPEN_DISABLE_ROCBLAS"] = "1"
+os.environ["HIP_LAUNCH_BLOCKING"] = "1"
+os.environ["HSA_ENABLE_SDMA"] = "0"
 
 import sys
 from typing import Union, OrderedDict
