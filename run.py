@@ -1,6 +1,10 @@
 import os
 os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"
+
+os.environ["MIOPEN_DISABLE_CONV"] = "1"
+os.environ["MIOPEN_DISABLE_IMPLICIT_GEMM"] = "1"
+
 import sys
 from typing import Union, OrderedDict
 from dotenv import load_dotenv
